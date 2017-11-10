@@ -34,7 +34,7 @@ class Api::V1::UsersController < ApplicationController
 
   def login # post user data, sends back jwt token and user info
     # @user = User.find_by(name: user_params['name'])
-    @user = User.where('lower(name) = ?', name.downcase).first # we don't have params[:id] so we can't search by id or use the show action
+    @user = User.where('lower(name) = ?', user_params['name'].downcase).first # we don't have params[:id] so we can't search by id or use the show action
     if @user.authenticate(user_params['password'])
       render json: @user
     else
