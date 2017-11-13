@@ -1,5 +1,5 @@
 class Api::V1::UsersController < ApplicationController
-  before_action :set_user, only: [:show, :edit, :update, :destroy]
+  before_action :set_user, only: [:show, :edit, :destroy]
 
   def index
     @users = User.all
@@ -12,7 +12,7 @@ class Api::V1::UsersController < ApplicationController
 
   def create
     @user = User.new(user_params)
-    @user.save ? (redirect_to api_v1_user_path(@user)) : (render json: {message: 'Fail'})
+    @user.save ? (render json: {user: @user, jwt_token: issue_token({user_id: @user.id})}) : (render json: {message: 'Fail'})
   end
 
   def show
@@ -24,7 +24,9 @@ class Api::V1::UsersController < ApplicationController
   end
 
   def update
-    @user.update(user_params) ? (redirect_to api_v1_user_path(@user)) : (render :edit)
+    @user = User.find(user_params['id'])
+    @user.update(high_score: user_params['high_score'])
+    render json: @user
   end
 
   def destroy
@@ -36,10 +38,22 @@ class Api::V1::UsersController < ApplicationController
     # @user = User.find_by(name: user_params['name'])
     @user = User.where('lower(name) = ?', user_params['name'].downcase).first # we don't have params[:id] so we can't search by id or use the show action
     if @user.authenticate(user_params['password'])
-      render json: @user
+      render json: {user: @user, jwt_token: issue_token({user_id: @user.id})}
     else
       render json: {message: 'Fail'}
     end
+  end
+
+  def scores
+    arr = User.all.sort_by do |a|
+      a.high_score
+    end.reverse
+    render json: arr
+  end
+
+  def jwt
+    user = current_user
+    render json: user
   end
 
 
@@ -51,7 +65,7 @@ class Api::V1::UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:name, :email, :password, :password_confirmation, :high_score)
+    params.require(:user).permit(:name, :id, :email, :password, :password_confirmation, :high_score)
   end
 
 end
